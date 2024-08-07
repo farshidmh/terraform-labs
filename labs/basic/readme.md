@@ -1,33 +1,34 @@
-# Terraform Lab: Deploying an EC2 Instance and S3 Bucket on AWS
+# Terraform Lab: Creating a Windows EC2 Instance in a Custom VPC and Subnet on AWS
 
 ## Duration
 
-Approximately 30 minutes
+Approximately 45 minutes
 
 ## Objective
 
-The objective of this lab is to guide you through the process of using Terraform to deploy an EC2 instance and an S3 bucket on AWS. You will create and manage these resources using Terraform configuration files.
+The objective of this lab is to guide you through the process of using Terraform to create a Windows EC2 instance in a custom VPC (`farshid-a-vpc`) and subnet (`farshid-a-public`) on AWS.
 
-## Prerequisites:
+## Prerequisites
 
 - Basic understanding of Terraform.
 - Terraform installed on your machine.
 - AWS CLI configured with your AWS account credentials.
+- Existing VPC and Subnet with the names `farshid-a-vpc` and `farshid-a-public`.
 
-## Step-by-step guide:
+## Step-by-step Guide
 
 ### Step A: Set up the Terraform Configuration
 
 1. Create a new directory for your Terraform project and navigate into it:
 
 ```bash
-mkdir terraform-lab
-cd terraform-lab
+mkdir terraform-windows-lab
+cd terraform-windows-lab
 ```
 
 2. Create the following files in your project directory:
     - `main.tf`
-    - `output.tf`
+    - `outputs.tf`
     - `providers.tf`
 
 ### Step B: Define the Terraform Configuration
@@ -37,63 +38,71 @@ cd terraform-lab
 ```hcl
 # providers.tf
 
-# Example 02-01 - Configuration
-
 terraform {
-    required_providers {
-        aws = {
-            source = "hashicorp/aws"
-            version = ">= 3.0"
-        }     
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 3.0"
     }
-    # Required version of terraform
-    required_version = ">0.14"
+  }
+  required_version = ">= 0.14"
 }
 
-provider aws {
-    region = "us-east-2"
-    profile = "dev"
+provider "aws" {
+  region  = "us-east-2"
+  profile = "default"
 }
 ```
 
-### Step C: Define Resources
+### Step C: Define Data Sources and Resources
 
-4. In the `main.tf` file, define the resources for an EC2 instance and an S3 bucket:
+4. In the `main.tf` file, define the data sources to fetch the VPC and subnet details, and create the EC2 instance:
 
 ```hcl
 # main.tf
 
-resource "aws_instance" "myVM" {
-    ami = "ami-077e31c4939f6a2f3"
-    instance_type = "t2.micro"
-    tags = {
-        Name = "Example-01"
-    }
+data "aws_vpc" "selected" {
+  filter {
+    name   = "tag:Name"
+    values = ["farshid-a-vpc"]
+  }
 }
 
-resource "aws_s3_bucket" "myBucket" {
-    bucket = "terraform-example-02-01"
+data "aws_subnet" "selected" {
+  filter {
+    name   = "tag:Name"
+    values = ["farshid-a-public"]
+  }
+
+  vpc_id = data.aws_vpc.selected.id
 }
 
-data "aws_vpc" "default_VPC" {
-    default = true
+resource "aws_instance" "windows" {
+  ami           = "ami-05804339cc1cf98c0"
+  instance_type = "t2.micro"
+  subnet_id     = data.aws_subnet.selected.id
+
+  tags = {
+    Name = "Windows-Instance"
+  }
 }
 ```
 
 ### Step D: Define Outputs
 
-5. In the `output.tf` file, define the outputs for the EC2 instance's public IP and the default VPC ID:
+5. In the `outputs.tf` file, define the outputs for the instance ID and public IP:
 
 ```hcl
-# output.tf
+# outputs.tf
 
-output "EC2_public_ip" {
-    description = "Public IP address of 'myVM'"
-    value = aws_instance.myVM.public_ip 
+output "instance_id" {
+  description = "The ID of the Windows EC2 instance"
+  value       = aws_instance.windows.id
 }
 
-output "VPC_id" {
-    value = data.aws_vpc.default_VPC.id
+output "public_ip" {
+  description = "The public IP address of the Windows EC2 instance"
+  value       = aws_instance.windows.public_ip
 }
 ```
 
@@ -118,8 +127,7 @@ terraform apply
 9. Once the apply step completes, verify the deployment by checking the AWS Management Console or using the AWS CLI:
 
 ```bash
-aws ec2 describe-instances --filters "Name=tag:Name,Values=Example-01"
-aws s3 ls
+aws ec2 describe-instances --instance-ids $(terraform output -raw instance_id)
 ```
 
 ### Step G: Clean Up Resources
@@ -140,54 +148,66 @@ Ensure your files look like this:
 
 ```hcl
 terraform {
-    required_providers {
-        aws = {
-            source = "hashicorp/aws"
-            version = ">= 3.0"
-        }     
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 3.0"
     }
-    required_version = ">0.14"
+  }
+  required_version = ">= 0.14"
 }
 
-provider aws {
-    region = "us-east-2"
-    profile = "dev"
+provider "aws" {
+  region  = "us-east-2"
+  profile = "default"
 }
 ```
 
 ### main.tf
 
 ```hcl
-resource "aws_instance" "myVM" {
-    ami = "ami-077e31c4939f6a2f3"
-    instance_type = "t2.micro"
-    tags = {
-        Name = "Example-01"
-    }
+data "aws_vpc" "selected" {
+  filter {
+    name   = "tag:Name"
+    values = ["farshid-a-vpc"]
+  }
 }
 
-resource "aws_s3_bucket" "myBucket" {
-    bucket = "terraform-example-02-01"
+data "aws_subnet" "selected" {
+  filter {
+    name   = "tag:Name"
+    values = ["farshid-a-public"]
+  }
+
+  vpc_id = data.aws_vpc.selected.id
 }
 
-data "aws_vpc" "default_VPC" {
-    default = true
+resource "aws_instance" "windows" {
+  ami           = "ami-05804339cc1cf98c0"
+  instance_type = "t2.micro"
+  subnet_id     = data.aws_subnet.selected.id
+
+  tags = {
+    Name = "Windows-Instance"
+  }
 }
 ```
 
-### output.tf
+### outputs.tf
 
 ```hcl
-output "EC2_public_ip" {
-    description = "Public IP address of 'myVM'"
-    value = aws_instance.myVM.public_ip 
+output "instance_id" {
+  description = "The ID of the Windows EC2 instance"
+  value       = aws_instance.windows.id
 }
 
-output "VPC_id" {
-    value = data.aws_vpc.default_VPC.id
+output "public_ip" {
+  description = "The public IP address of the Windows EC2 instance"
+  value       = aws_instance.windows.public_ip
 }
 ```
 
 ## Summary
 
-This lab provided a hands-on approach to deploying an EC2 instance and an S3 bucket on AWS using Terraform. You learned how to define providers, create resources, and manage outputs through Terraform configuration files. Using Terraform, you can automate the deployment and management of your infrastructure in a consistent and repeatable manner.
+This lab provided a hands-on approach to creating a Windows EC2 instance in a custom VPC and subnet on AWS using Terraform. You learned how to define providers, create resources, and manage outputs
+through Terraform configuration files. Using Terraform, you can automate the deployment and management of your infrastructure in a consistent and repeatable manner.
