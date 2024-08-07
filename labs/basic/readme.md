@@ -186,6 +186,8 @@ resource "aws_instance" "windows" {
   ami           = "ami-05804339cc1cf98c0"
   instance_type = "t2.micro"
   subnet_id     = data.aws_subnet.selected.id
+  
+  associate_public_ip_address = true
 
   tags = {
     Name = "Windows-Instance"
