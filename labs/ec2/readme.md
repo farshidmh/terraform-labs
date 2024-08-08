@@ -166,7 +166,7 @@ resource "aws_instance" "ec2" {
   ami           = var.ami_id
   instance_type = var.instance_type
   subnet_id     = aws_subnet.main.id
-
+  associate_public_ip_address = true
   tags = {
     Name = "EC2-Instance-${count.index + 1}"
   }
@@ -414,7 +414,7 @@ resource "aws_instance" "ec2" {
   ami           = var.ami_id
   instance_type = var.instance_type
   subnet_id     = aws_subnet.main.id
-
+  associate_public_ip_address = true
   tags = {
     Name = "EC2-Instance-${count.index + 1}"
   }
