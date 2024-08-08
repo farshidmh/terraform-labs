@@ -1,10 +1,62 @@
-To ask for values during the `terraform apply` process, you can define input variables without setting default values in your `variables.tf` file. Terraform will prompt you to enter values for these variables when you run `terraform apply`.
+# Terraform Lab: Creating a VPC, Subnet, Internet Gateway, and Route Table on AWS
 
-Here’s how you can modify the `variables.tf` file to ask for values during apply:
+## Duration
 
-### Step A: Define Variables without Default Values
+Approximately 30 minutes
 
-Modify the `variables.tf` file to define variables without default values:
+## Objective
+
+The objective of this lab is to guide you through the process of using Terraform to create a Virtual Private Cloud (VPC), a subnet within that VPC, an Internet Gateway (IGW), and a Route Table on AWS.
+
+## Prerequisites
+
+- Basic understanding of Terraform.
+- Terraform installed on your machine.
+- AWS CLI configured with your AWS account credentials.
+
+## Step-by-step Guide
+
+### Step A: Set up the Terraform Configuration
+
+1. Create a new directory for your Terraform project and navigate into it:
+
+```bash
+mkdir terraform-vpc-lab
+cd terraform-vpc-lab
+```
+
+2. Create the following files in your project directory:
+    - `main.tf`
+    - `outputs.tf`
+    - `providers.tf`
+    - `variables.tf`
+
+### Step B: Define the Terraform Configuration
+
+3. In the `providers.tf` file, specify the required Terraform and AWS provider configuration:
+
+```hcl
+# providers.tf
+
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 3.0"
+    }
+  }
+  required_version = ">= 0.14"
+}
+
+provider "aws" {
+  region  = var.region
+  profile = var.profile
+}
+```
+
+### Step C: Define Variables
+
+4. In the `variables.tf` file, define variables for the VPC CIDR block, subnet CIDR block, region, profile, VPC name prefix, and subnet name prefix:
 
 ```hcl
 # variables.tf
@@ -12,37 +64,43 @@ Modify the `variables.tf` file to define variables without default values:
 variable "vpc_cidr" {
   description = "The CIDR block for the VPC"
   type        = string
+  default     = "10.0.0.0/16"
 }
 
 variable "subnet_cidr" {
   description = "The CIDR block for the subnet"
   type        = string
+  default     = "10.0.1.0/24"
 }
 
 variable "region" {
   description = "The AWS region to deploy resources in"
   type        = string
+  default     = "us-east-2"
 }
 
 variable "profile" {
   description = "The AWS CLI profile to use"
   type        = string
+  default     = "default"
 }
 
 variable "vpc_name_prefix" {
   description = "The prefix for the VPC name"
   type        = string
+  default     = "main"
 }
 
 variable "subnet_name_prefix" {
   description = "The prefix for the Subnet name"
   type        = string
+  default     = "main"
 }
 ```
 
-### Step B: Define Resources Using Variables
+### Step D: Define Resources
 
-Ensure the `main.tf` file uses the defined variables:
+5. In the `main.tf` file, define the resources for creating a VPC, a subnet, an Internet Gateway, and a Route Table:
 
 ```hcl
 # main.tf
@@ -94,67 +152,208 @@ resource "aws_route_table_association" "main" {
 }
 ```
 
-### Step C: Apply the Configuration
+### Step E: Define Outputs
 
-1. Initialize your Terraform project:
+6. In the `outputs.tf` file, define the outputs for the VPC ID, subnet ID, Internet Gateway ID, and Route Table ID:
+
+```hcl
+# outputs.tf
+
+output "vpc_id" {
+  description = "The ID of the VPC"
+  value       = aws_vpc.main.id
+}
+
+output "subnet_id" {
+  description = "The ID of the subnet"
+  value       = aws_subnet.main.id
+}
+
+output "internet_gateway_id" {
+  description = "The ID of the Internet Gateway"
+  value       = aws_internet_gateway.main.id
+}
+
+output "route_table_id" {
+  description = "The ID of the Route Table"
+  value       = aws_route_table.main.id
+}
+```
+
+### Step F: Initialize and Apply the Configuration
+
+7. Initialize your Terraform project. This step downloads the required provider plugins:
 
 ```bash
 terraform init
 ```
 
-2. Apply the Terraform configuration. Terraform will prompt you to enter values for the variables:
+8. Apply the Terraform configuration to create the resources:
 
 ```bash
 terraform apply
 ```
 
-When prompted, provide the values for each variable:
+9. Confirm the apply step by typing `yes` when prompted.
 
-```
-var.vpc_cidr
-  The CIDR block for the VPC
+### Step G: Verify the Deployment
 
-  Enter a value: 10.0.0.0/16
-
-var.subnet_cidr
-  The CIDR block for the subnet
-
-  Enter a value: 10.0.1.0/24
-
-var.region
-  The AWS region to deploy resources in
-
-  Enter a value: us-east-2
-
-var.profile
-  The AWS CLI profile to use
-
-  Enter a value: default
-
-var.vpc_name_prefix
-  The prefix for the VPC name
-
-  Enter a value: main
-
-var.subnet_name_prefix
-  The prefix for the Subnet name
-
-  Enter a value: main
-```
-
-### Step D: Verify and Clean Up Resources
-
-Follow the remaining steps to verify and clean up resources as previously detailed:
+10. Once the apply step completes, verify the deployment by checking the AWS Management Console or using the AWS CLI:
 
 ```bash
 aws ec2 describe-vpcs --vpc-ids $(terraform output -raw vpc_id)
 aws ec2 describe-subnets --subnet-ids $(terraform output -raw subnet_id)
 aws ec2 describe-internet-gateways --internet-gateway-ids $(terraform output -raw internet_gateway_id)
 aws ec2 describe-route-tables --route-table-ids $(terraform output -raw route_table_id)
+```
 
+### Step H: Clean Up Resources
+
+11. To avoid incurring charges, destroy the resources created by Terraform once you are done:
+
+```bash
 terraform destroy
 ```
 
-### Summary
+12. Confirm the destroy step by typing `yes` when prompted.
 
-This modification prompts you to enter values for the VPC CIDR block, subnet CIDR block, region, profile, VPC name prefix, and subnet name prefix during the `terraform apply` process. This approach is useful when you need to input dynamic values at runtime.
+## Final Configuration Files
+
+Ensure your files look like this:
+
+### providers.tf
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 3.0"
+    }
+  }
+  required_version = ">= 0.14"
+}
+
+provider "aws" {
+  region  = var.region
+  profile = var.profile
+}
+```
+
+### variables.tf
+
+```hcl
+variable "vpc_cidr" {
+  description = "The CIDR block for the VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "subnet_cidr" {
+  description = "The CIDR block for the subnet"
+  type        = string
+  default     = "10.0.1.0/24"
+}
+
+variable "region" {
+  description = "The AWS region to deploy resources in"
+  type        = string
+  default     = "us-east-2"
+}
+
+variable "profile" {
+  description = "The AWS CLI profile to use"
+  type        = string
+  default     = "default"
+}
+
+variable "vpc_name_prefix" {
+  description = "The prefix for the VPC name"
+  type        = string
+  default     = "main"
+}
+
+variable "subnet_name_prefix" {
+  description = "The prefix for the Subnet name"
+  type        = string
+  default     = "main"
+}
+```
+
+### main.tf
+
+```hcl
+resource "aws_vpc" "main" {
+  cidr_block = var.vpc_cidr
+
+  tags = {
+    Name = "${var.vpc_name_prefix}_vpc"
+  }
+}
+
+resource "aws_subnet" "main" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.subnet_cidr
+  availability_zone = "${var.region}a"
+
+  tags = {
+    Name = "${var.subnet_name_prefix}_subnet"
+  }
+}
+
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "main_igw"
+  }
+}
+
+resource "aws_route_table" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "main_route_table"
+  }
+}
+
+resource "aws_route" "default_route" {
+  route_table_id         = aws_route_table.main.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.main.id
+  depends_on             = [aws_route_table.main]
+}
+
+resource "aws_route_table_association" "main" {
+  subnet_id      = aws_subnet.main.id
+  route_table_id = aws_route_table.main.id
+}
+```
+
+### outputs.tf
+
+```hcl
+output "vpc_id" {
+  description = "The ID of the VPC"
+  value       = aws_vpc.main.id
+}
+
+output "subnet_id" {
+  description = "The ID of the subnet"
+  value       = aws_subnet.main.id
+}
+
+output "internet_gateway_id" {
+  description = "The ID of the Internet Gateway"
+  value       = aws_internet_gateway.main.id
+}
+
+output "route_table_id" {
+  description = "The ID of the Route Table"
+  value       = aws_route_table.main.id
+}
+```
+
+## Summary
+
+This lab provided a hands-on approach to creating a VPC, a subnet, an Internet Gateway, and a Route Table on AWS using Terraform
